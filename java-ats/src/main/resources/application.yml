@@ -1,0 +1,25 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  # Set connection timeout for incoming requests (5 minutes for LLM operations)
+  connection-timeout: 300000
+  # Keep-alive timeout
+  keep-alive-timeout: 300000
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  # Transaction timeout for long operations
+  transaction:
+    default-timeout: 300
+
+# Logging configuration
+logging:
+  level:
+    com.ats: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

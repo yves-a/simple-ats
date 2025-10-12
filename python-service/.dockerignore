@@ -1,0 +1,24 @@
+# Python service .dockerignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+env/
+venv/
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.log
+.DS_Store

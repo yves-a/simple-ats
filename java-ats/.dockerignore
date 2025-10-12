@@ -1,0 +1,16 @@
+# Java service .dockerignore
+target/
+!target/simple-ats-1.0.0.jar
+.mvn/
+mvnw
+mvnw.cmd
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+*.log
+.DS_Store
+.idea/
+*.iml
+.vscode/
