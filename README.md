@@ -2,6 +2,10 @@
 
 A simple Applicant Tracking System (ATS) that compares resumes to job descriptions using AI embeddings.
 
+## Demo
+
+[![Watch the demo](https://img.shields.io/badge/▶%20Watch%20Video-YouTube-red?logo=youtube)](https://youtu.be/17OmQVSxx6Y)
+
 ## ATS Project Startup Guide
 
 This project supports both local development and production deployment using Docker Compose. The Python AI service can connect to Ollama either running locally (for development) or as a container (for production).
