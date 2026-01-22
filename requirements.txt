@@ -4,3 +4,6 @@ sentence-transformers
 numpy
 nltk
 pydantic
+uvicorn
+websockets
+faster-whisper

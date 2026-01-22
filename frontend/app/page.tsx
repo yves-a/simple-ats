@@ -10,9 +10,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Upload, FileText, Brain, Target, CheckCircle2, XCircle, TrendingUp, Link, Loader2, ChevronDown, ChevronRight, Eye, Lightbulb, Sparkles } from 'lucide-react'
+import { Upload, FileText, Brain, Target, CheckCircle2, XCircle, TrendingUp, Link, Loader2, ChevronDown, ChevronRight, Eye, Lightbulb, Sparkles, MessageSquare } from 'lucide-react'
 import pdfToText from 'react-pdftotext'
 import { Input } from '@/components/ui/input'
+import InterviewPractice from '@/components/InterviewPractice'
 
 // Job URL Input Component
 function JobUrlInput({ onJobDescriptionExtracted, onError }: {
@@ -292,13 +293,31 @@ export default function ATSPage() {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Smart ATS
               </h1>
-              <p className="text-gray-600">AI-Powered Resume Job Matcher</p>
+              <p className="text-gray-600">AI-Powered Career Tools</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Feature Tabs */}
+        <Tabs defaultValue="resume" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8 h-12">
+            <TabsTrigger value="resume" className="text-base">
+              <FileText className="h-4 w-4 mr-2" />
+              Resume Analyzer
+            </TabsTrigger>
+            <TabsTrigger value="interview" className="text-base">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Mock Interview
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="interview">
+            <InterviewPractice />
+          </TabsContent>
+
+          <TabsContent value="resume">
         {/* Error Alert */}
         {error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
@@ -771,6 +790,8 @@ export default function ATSPage() {
             )}
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
