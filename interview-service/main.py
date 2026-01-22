@@ -69,7 +69,9 @@ class InterviewService:
         self.ollama_url = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
         self.model_name = "qwen2.5:3b-instruct-q4_K_M"
         self.client: Optional[ollama.AsyncClient] = None
-        logger.info(f"Interview Service: {self.environment} mode, Ollama: {self.ollama_url}")
+        logger.info(
+            f"Interview Service: {self.environment} mode, Ollama: {self.ollama_url}"
+        )
 
     async def initialize(self):
         """Initialize Ollama connection"""
@@ -78,7 +80,7 @@ class InterviewService:
                 response = await client.get(f"{self.ollama_url}/api/tags")
                 if response.status_code != 200:
                     raise Exception(f"Ollama not available: {response.status_code}")
-            
+
             self.client = ollama.AsyncClient(host=self.ollama_url)
             logger.info("Ollama client initialized successfully")
             return True
@@ -93,23 +95,21 @@ class InterviewService:
         else:
             category = random.choice(list(BEHAVIORAL_QUESTIONS.keys()))
             questions = BEHAVIORAL_QUESTIONS[category]
-        
-        return {
-            "category": category,
-            "question": random.choice(questions)
-        }
+
+        return {"category": category, "question": random.choice(questions)}
 
     def get_all_categories(self) -> List[str]:
         """Get all available question categories"""
         return list(BEHAVIORAL_QUESTIONS.keys())
 
-    async def evaluate_answer_stream(self, question: str, answer: str, websocket: WebSocket):
+    async def evaluate_answer_stream(
+        self, question: str, answer: str, websocket: WebSocket
+    ):
         """Stream evaluation of interview answer using STAR method"""
         if not self.client:
-            await websocket.send_json({
-                "type": "error",
-                "message": "AI service not available"
-            })
+            await websocket.send_json(
+                {"type": "error", "message": "AI service not available"}
+            )
             return
 
         prompt = f"""You are an expert behavioral interview coach. Evaluate this interview response using the STAR method.
@@ -150,10 +150,16 @@ Be encouraging but honest. Focus on actionable improvements. Respond with ONLY v
                 if "response" in chunk:
                     full_response += chunk["response"]
                     # Send progress updates
-                    await websocket.send_json({
-                        "type": "evaluation_progress",
-                        "partial": full_response[-50:] if len(full_response) > 50 else full_response
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "evaluation_progress",
+                            "partial": (
+                                full_response[-50:]
+                                if len(full_response) > 50
+                                else full_response
+                            ),
+                        }
+                    )
 
             # Parse the complete response
             try:
@@ -163,51 +169,71 @@ Be encouraging but honest. Focus on actionable improvements. Respond with ONLY v
                 if start >= 0 and end > start:
                     json_str = full_response[start:end]
                     evaluation = json.loads(json_str)
-                    await websocket.send_json({
-                        "type": "evaluation_complete",
-                        "data": evaluation
-                    })
+                    await websocket.send_json(
+                        {"type": "evaluation_complete", "data": evaluation}
+                    )
                 else:
                     raise ValueError("No JSON found")
             except (json.JSONDecodeError, ValueError):
                 # Fallback evaluation
-                await websocket.send_json({
-                    "type": "evaluation_complete",
-                    "data": self._fallback_evaluation(answer)
-                })
+                await websocket.send_json(
+                    {
+                        "type": "evaluation_complete",
+                        "data": self._fallback_evaluation(answer),
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Evaluation error: {e}")
-            await websocket.send_json({
-                "type": "error",
-                "message": str(e)
-            })
+            await websocket.send_json({"type": "error", "message": str(e)})
 
     def _fallback_evaluation(self, answer: str) -> Dict:
         """Provide basic feedback when AI is unavailable"""
         word_count = len(answer.split())
         has_details = word_count > 50
-        
+
         return {
             "star_analysis": {
-                "situation": {"present": has_details, "feedback": "Consider adding more context about the situation."},
-                "task": {"present": has_details, "feedback": "Clarify your specific responsibility."},
-                "action": {"present": True, "feedback": "Good - you described actions taken."},
-                "result": {"present": word_count > 100, "feedback": "Include measurable outcomes if possible."}
+                "situation": {
+                    "present": has_details,
+                    "feedback": "Consider adding more context about the situation.",
+                },
+                "task": {
+                    "present": has_details,
+                    "feedback": "Clarify your specific responsibility.",
+                },
+                "action": {
+                    "present": True,
+                    "feedback": "Good - you described actions taken.",
+                },
+                "result": {
+                    "present": word_count > 100,
+                    "feedback": "Include measurable outcomes if possible.",
+                },
             },
             "score": 5 + min(word_count // 30, 3),
-            "strengths": ["You provided a response", "Shows engagement with the question"],
-            "improvements": ["Add more specific details", "Include quantifiable results"],
-            "improved_answer_snippet": "Consider starting with: 'In my role as [position], I faced [specific situation]...'"
+            "strengths": [
+                "You provided a response",
+                "Shows engagement with the question",
+            ],
+            "improvements": [
+                "Add more specific details",
+                "Include quantifiable results",
+            ],
+            "improved_answer_snippet": "Consider starting with: 'In my role as [position], I faced [specific situation]...'",
         }
 
-    async def generate_followup_stream(self, question: str, answer: str, websocket: WebSocket):
+    async def generate_followup_stream(
+        self, question: str, answer: str, websocket: WebSocket
+    ):
         """Generate a follow-up question based on the answer"""
         if not self.client:
-            await websocket.send_json({
-                "type": "followup",
-                "question": "Can you tell me more about the specific results you achieved?"
-            })
+            await websocket.send_json(
+                {
+                    "type": "followup",
+                    "question": "Can you tell me more about the specific results you achieved?",
+                }
+            )
             return
 
         prompt = f"""You are conducting a behavioral interview. Based on this exchange, generate ONE brief follow-up question.
@@ -228,18 +254,17 @@ Respond with ONLY the follow-up question, nothing else."""
                 prompt=prompt,
                 options={"temperature": 0.8, "num_predict": 50},
             )
-            
+
             followup = response["response"].strip().strip('"')
-            await websocket.send_json({
-                "type": "followup",
-                "question": followup
-            })
+            await websocket.send_json({"type": "followup", "question": followup})
         except Exception as e:
             logger.error(f"Follow-up generation error: {e}")
-            await websocket.send_json({
-                "type": "followup",
-                "question": "Can you elaborate on the specific impact of your actions?"
-            })
+            await websocket.send_json(
+                {
+                    "type": "followup",
+                    "question": "Can you elaborate on the specific impact of your actions?",
+                }
+            )
 
 
 # Global service instance
@@ -273,10 +298,7 @@ async def get_category_questions(category: str):
     """Get all questions for a category"""
     if category not in BEHAVIORAL_QUESTIONS:
         raise HTTPException(status_code=404, detail="Category not found")
-    return {
-        "category": category,
-        "questions": BEHAVIORAL_QUESTIONS[category]
-    }
+    return {"category": category, "questions": BEHAVIORAL_QUESTIONS[category]}
 
 
 @app.websocket("/ws/interview")
@@ -284,64 +306,67 @@ async def interview_websocket(websocket: WebSocket):
     """WebSocket endpoint for real-time interview interaction"""
     await websocket.accept()
     logger.info("Interview WebSocket connected")
-    
+
     current_question = None
-    
+
     try:
         while True:
             data = await websocket.receive_json()
             message_type = data.get("type")
-            
+
             if message_type == "get_question":
                 # Get a new question
                 category = data.get("category")
                 q = interview_service.get_random_question(category)
                 current_question = q["question"]
-                await websocket.send_json({
-                    "type": "question",
-                    "category": q["category"],
-                    "question": current_question
-                })
-            
+                await websocket.send_json(
+                    {
+                        "type": "question",
+                        "category": q["category"],
+                        "question": current_question,
+                    }
+                )
+
             elif message_type == "submit_answer":
                 # Evaluate the answer
                 answer = data.get("answer", "")
                 question = data.get("question") or current_question
-                
+
                 if not answer.strip():
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "Please provide an answer"
-                    })
+                    await websocket.send_json(
+                        {"type": "error", "message": "Please provide an answer"}
+                    )
                     continue
-                
+
                 if not question:
-                    await websocket.send_json({
-                        "type": "error", 
-                        "message": "No question context available"
-                    })
+                    await websocket.send_json(
+                        {"type": "error", "message": "No question context available"}
+                    )
                     continue
-                
+
                 # Send acknowledgment
-                await websocket.send_json({
-                    "type": "evaluating",
-                    "message": "Analyzing your response..."
-                })
-                
+                await websocket.send_json(
+                    {"type": "evaluating", "message": "Analyzing your response..."}
+                )
+
                 # Stream evaluation
-                await interview_service.evaluate_answer_stream(question, answer, websocket)
-            
+                await interview_service.evaluate_answer_stream(
+                    question, answer, websocket
+                )
+
             elif message_type == "get_followup":
                 # Generate follow-up question
                 answer = data.get("answer", "")
                 question = data.get("question") or current_question
-                
+
                 if question and answer:
-                    await interview_service.generate_followup_stream(question, answer, websocket)
-            
+                    await interview_service.generate_followup_stream(
+                        question, answer, websocket
+                    )
+
             elif message_type == "ping":
                 await websocket.send_json({"type": "pong"})
-    
+
     except WebSocketDisconnect:
         logger.info("Interview WebSocket disconnected")
     except Exception as e:
@@ -354,4 +379,5 @@ async def interview_websocket(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8001)
